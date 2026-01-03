@@ -1,0 +1,100 @@
+diff --git a/vlib/v/ast/comptime_valid_idents.v b/vlib/v/ast/comptime_valid_idents.v
+index 2a242adb5..d4bd45ac5 100644
+--- a/vlib/v/ast/comptime_valid_idents.v
++++ b/vlib/v/ast/comptime_valid_idents.v
+@@ -7,7 +7,7 @@ pub const valid_comptime_if_os = ['windows', 'ios', 'macos', 'mach', 'darwin', '
+ 	'haiku', 'serenity', 'vinix', 'plan9', 'wasm32_emscripten']
+ pub const valid_comptime_if_compilers = ['gcc', 'tinyc', 'clang', 'mingw', 'msvc', 'cplusplus']
+ pub const valid_comptime_if_platforms = ['amd64', 'i386', 'aarch64', 'arm64', 'arm32', 'rv64',
+-	'rv32', 's390x', 'ppc64le', 'loongarch64']
++	'rv32', 's390x', 'ppc64le', 'loongarch64', 'sparc64']
+ pub const valid_comptime_if_cpu_features = ['x64', 'x32', 'little_endian', 'big_endian']
+ pub const valid_comptime_if_other = ['apk', 'js', 'debug', 'prod', 'test', 'glibc', 'prealloc',
+ 	'no_bounds_checking', 'freestanding', 'threads', 'js_node', 'js_browser', 'js_freestanding',
+@@ -67,6 +67,9 @@ pub fn eval_comptime_not_user_defined_ident(ident string, the_pref &pref.Prefere
+ 			'loongarch64' {
+ 				is_true = the_pref.arch == .loongarch64
+ 			}
++			'sparc64' {
++				is_true = the_pref.arch == .sparc64
++			}
+ 			else {
+ 				return error('invalid \$if condition: unknown platforms `${ident}`')
+ 			}
+@@ -225,6 +228,7 @@ pub const system_ident_map = {
+ 	's390x':              '__V_s390x'
+ 	'ppc64le':            '__V_ppc64le'
+ 	'loongarch64':        '__V_loongarch64'
++	'sparc64':	      '__V_sparc64'
+ 	'x64':                'TARGET_IS_64BIT'
+ 	'x32':                'TARGET_IS_32BIT'
+ 	'little_endian':      'TARGET_ORDER_IS_LITTLE'
+diff --git a/vlib/v/ast/types.v b/vlib/v/ast/types.v
+index cd3b2c113..a00996ef4 100644
+--- a/vlib/v/ast/types.v
++++ b/vlib/v/ast/types.v
+@@ -54,6 +54,7 @@ pub enum Language {
+ 	s390x
+ 	ppc64le
+ 	loongarch64
++	sparc64
+ 	wasm32
+ }
+
+@@ -87,6 +88,9 @@ pub fn pref_arch_to_table_language(pref_arch pref.Arch) Language {
+ 		.loongarch64 {
+ 			.loongarch64
+ 		}
++		.sparc64 {
++			.sparc64
++		}
+ 		.js_node, .js_browser, .js_freestanding {
+ 			.js
+ 		}
+diff --git a/vlib/v/gen/c/cheaders.v b/vlib/v/gen/c/cheaders.v
+index 2dfe84022..a9c3adc8a 100644
+--- a/vlib/v/gen/c/cheaders.v
++++ b/vlib/v/gen/c/cheaders.v
+@@ -101,6 +101,11 @@ const c_common_macros = '
+ 	#undef __V_architecture
+ 	#define __V_architecture 9
+ #endif
++#if defined(__sparc__)
++       #define __V_sparc64  1
++       #undef __V_architecture
++       #define __V_architecture 10
++#endif
+ // Using just __GNUC__ for detecting gcc, is not reliable because other compilers define it too:
+ #ifdef __GNUC__
+ 	#define __V_GCC__
+@@ -431,7 +436,7 @@ void _vcleanup(void);
+
+ const c_builtin_types = '
+ //================================== builtin types ================================*/
+-#if defined(__x86_64__) || defined(_M_AMD64) || defined(__aarch64__) || defined(__arm64__) || defined(_M_ARM64) || (defined(__riscv_xlen) && __riscv_xlen == 64) || defined(__s390x__) || (defined(__powerpc64__) && defined(__LITTLE_ENDIAN__)) || defined(__loongarch64)
++#if defined(__x86_64__) || defined(_M_AMD64) || defined(__aarch64__) || defined(__arm64__) || defined(_M_ARM64) || (defined(__riscv_xlen) && __riscv_xlen == 64) || defined(__s390x__) || (defined(__powerpc64__) && defined(__LITTLE_ENDIAN__)) || defined(__loongarch64) || defined(__sparc__)
+ typedef int64_t vint_t;
+ #else
+ typedef int32_t vint_t;
+diff --git a/vlib/v/pref/arch.c.v b/vlib/v/pref/arch.c.v
+index 7d86c1880..47f31dcb9 100644
+--- a/vlib/v/pref/arch.c.v
++++ b/vlib/v/pref/arch.c.v
+@@ -11,6 +11,7 @@ pub enum Arch {
+ 	s390x
+ 	ppc64le
+ 	loongarch64
++	sparc64
+ 	js_node
+ 	js_browser
+ 	js_freestanding
+@@ -60,6 +61,9 @@ pub fn arch_from_string(arch_str string) !Arch {
+ 		'ppc64le' {
+ 			return .ppc64le
+ 		}
++		'sparc64' {
++			return .sparc64
++		}
+ 		'js', 'js_node' {
+ 			return .js_node
+ 		}
