@@ -14,4 +14,7 @@ gcc -std=c99 -w ./v.c -o ./v1
 ```
 3. Apply `second.patch`
 4. Repeat step2
-5.
+5. Enjoy
+```
+VTEST_ONLY=closure ./v test vlib/
+```
