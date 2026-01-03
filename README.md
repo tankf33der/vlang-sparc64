@@ -1,6 +1,7 @@
 Jan2026
 
 Lets add `closure` support on `SPARC64` to [vlang](https://vlang.io/).
+
 Steps:
 1. Apply `first.patch`
 2. Bootstrap
